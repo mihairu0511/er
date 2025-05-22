@@ -1,4 +1,4 @@
-```
+```mermaid
 erDiagram
     USERS {
       BIGSERIAL id PK
