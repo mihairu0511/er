@@ -1,0 +1,30 @@
+@startuml
+actor User
+participant "Web App (EC2)" as WebApp
+participant RDS
+participant CC as "Credit-Card\nProcessor"
+participant APIGW as "API Gateway\n+ Lambda"
+participant GPU as "Sakura\nGPU Service"
+participant S3
+
+== Signup & API-Key Issuance ==
+User -> WebApp: POST /signup + CC info
+WebApp -> RDS: CREATE user + API key
+WebApp -> CC: charge(card)
+CC --> WebApp: payment result
+WebApp --> User: 201 + {apiKey}
+
+== Image-Generation ==
+User -> APIGW: GET /generate?prompt=…&apiKey
+APIGW -> RDS: SELECT * FROM users WHERE apiKey=?
+RDS --> APIGW: valid / invalid
+alt valid
+    APIGW -> GPU: generateImage(prompt)
+    GPU -> S3: PUT image
+    S3 --> GPU: imageUrl
+    GPU --> APIGW: { imageUrl }
+    APIGW --> User: 200 + { imageUrl }
+else invalid
+    APIGW --> User: 401 Unauthorized
+end
+@enduml
